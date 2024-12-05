@@ -1,20 +1,15 @@
-
-
-import { Button } from "@/components/ui/button";
+import ProductList from '@/components/shared/product/product-list'
+import sampleData from '@/lib/sample-data'
+//import { Button } from "@/components/ui/button";
 
 
 export default function Home() {
   return (
-    <div>
-      <h1>Hello World</h1>
-
-      <button className="bg-blue-500 text-white p-2 rounded-md">Click me 버튼</button>
-      <br />
-      <Button>Click me</Button>
-      <br />
-      <Button variant={'destructive'}>Button-destructive</Button>
-      <Button variant={'default1'} size={'lg'}>Button-default1</Button>
-      <Button variant={'secondary'} size={'sm'}>Button-secondary-sm</Button>
+    
+    <div className="space-y-8">
+      <h2 className="h2-bold">Latest Products</h2>
+      <ProductList data={sampleData.products} />
     </div>
+    
   );
 }
