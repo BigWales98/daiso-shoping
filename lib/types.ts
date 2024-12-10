@@ -1,4 +1,5 @@
 export interface Product {
+  id: string;
   name: string;
   slug: string;
   category: string;
@@ -9,6 +10,7 @@ export interface Product {
   numReviews: number;
   stock: number;
   description: string;
-  isFeatured?: boolean;
-  banner?: string;
+  isFeatured: boolean;
+  banner: string | null;
+  createdAt: Date;
 } 
