@@ -4,6 +4,8 @@ export const APP_DESCRIPTION =
   'An Amazon clone built with Next.js, Postgres, Shadcn'
 
 export const signInDefaultValues = {
+  name: '',
   email: '',
   password: '',
+  confirmPassword: '',
 }
