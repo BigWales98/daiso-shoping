@@ -9,6 +9,8 @@ import { cartItemSchema } from "../validator"
 import { formatError, round2, CustomError } from "../utils"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
+import { NextResponse } from "next/server"
+import type { NextRequest } from 'next/server'
 
 export async function getMyCart() {
   const sessionCartId = cookies().get('sessionCartId')?.value
@@ -141,4 +143,14 @@ export const removeItemFromCart = async (productId: string) => {
   } catch (error) {
     return { success: false, message: formatError(error as CustomError) }
   }
+}
+
+export async function checkAndCreateSessionCart(request: NextRequest) {
+  if (!request.cookies.get('sessionCartId')) {
+    const sessionCartId = crypto.randomUUID()
+    const response = NextResponse.next()
+    response.cookies.set('sessionCartId', sessionCartId)
+    return response
+  }
+  return true
 }

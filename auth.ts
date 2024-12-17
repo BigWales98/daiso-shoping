@@ -4,12 +4,21 @@ import { eq } from 'drizzle-orm'
 import type { NextAuthConfig } from 'next-auth'
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-
-
 import db from './db/drizzle'
-import { carts, users } from './db/schema'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { users } from './db/schema'
+import { DefaultSession } from 'next-auth'
+
+declare module 'next-auth' {
+  interface User {
+    role?: string
+  }
+  interface Session {
+    user: {
+      id: string
+      role: string
+    } & DefaultSession['user']
+  }
+}
 
 export const config = {
   pages: {
@@ -18,105 +27,44 @@ export const config = {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, //토큰유효기간
+    maxAge: 30 * 24 * 60 * 60,
   },
   adapter: DrizzleAdapter(db),
   providers: [
     CredentialsProvider({
-      credentials: {
-        email: {
-          type: 'email',
-        },
-        password: { type: 'password' },
-      },
       async authorize(credentials) {
-        if (credentials == null) return null
+        if (!credentials?.email || !credentials?.password) return null
 
         const user = await db.query.users.findFirst({
           where: eq(users.email, credentials.email as string),
         })
-        if (user && user.password) {
-          const isMatch = compareSync(
-            credentials.password as string,
-            user.password
-          )
-          if (isMatch) {
-            return {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              role: user.role,
-            }
-          }
+        if (!user || !user.password) return null
+
+        const isValid = compareSync(credentials.password as string, user.password)
+        if (!isValid) return null
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
         }
-        return null
       },
     }),
   ],
   callbacks: {
-    jwt: async ({ token, user, trigger, session }: any) => {
+    async jwt({ token, user }) {
       if (user) {
-        if (trigger === 'signIn' || trigger === 'signUp') {
-          const sessionCartId = cookies().get('sessionCartId')?.value
-          if (!sessionCartId) throw new Error('Session Cart Not Found')
-          const sessionCartExists = await db.query.carts.findFirst({
-            where: eq(carts.sessionCartId, sessionCartId),
-          })
-          if (sessionCartExists && !sessionCartExists.userId) {
-            const userCartExists = await db.query.carts.findFirst({
-              where: eq(carts.userId, user.id),
-            })
-            if (userCartExists) {
-              cookies().set('beforeSigninSessionCartId', sessionCartId)
-              cookies().set('sessionCartId', userCartExists.sessionCartId)
-            } else {
-              db.update(carts)
-                .set({userId: user.id})
-                .where(eq(carts.id, sessionCartExists.id))
-            }
-          }
-        }
-      }
-
-      if (session?.user.name && trigger === 'update') {
-        token.name = session.user.name
+        token.role = user.role
       }
       return token
     },
-    session: async ({ session, user, trigger, token }: any) => {
-      session.user.id = token.sub
-      session.user.role = token.role
-      session.user.name = token.name
-      if (trigger === 'update') {
-        session.user.name = user.name
+    async session({ session, token }) {
+      if (token && session.user) {
+        session.user.id = token.sub as string
+        session.user.role = token.role as string
       }
       return session
-    },
-    authorized({ request, auth }: any) {
-      const protectedPaths = [
-        /\/shipping-address/,
-        /\/payment-method/,
-        /\/place-order/,
-        /\/profile/,
-        /\/user\/(.*)/,
-        /\/order\/(.*)/,
-        /\/admin/,
-      ]
-      const { pathname } = request.nextUrl
-      if (!auth && protectedPaths.some((p) => p.test(pathname))) return false
-      if (!request.cookies.get('sessionCartId')) {
-        const sessionCartId = crypto.randomUUID()
-        const newRequestHeaders = new Headers(request.headers)
-        const response = NextResponse.next({
-          request: {
-            headers: newRequestHeaders,
-          },
-        })
-        response.cookies.set('sessionCartId', sessionCartId)
-        return response
-      } else {
-        return true
-      }
     },
   },
 } satisfies NextAuthConfig

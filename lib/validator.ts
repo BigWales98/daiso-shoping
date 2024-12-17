@@ -52,3 +52,19 @@ export const paymentMethodSchema = z
     path: ['type'],
     message: 'Invalid payment method',
   })
+
+export const insertOrderSchema = z.object({
+  userId: z.string().min(1),
+  shippingAddress: shippingAddressSchema,
+  paymentMethod: z.string().min(1),
+  itemsPrice: z.string().min(1),
+  shippingPrice: z.string().min(1),
+  taxPrice: z.string().min(1),
+  totalPrice: z.string().min(1),
+  paymentResult: z.object({
+    id: z.string(),
+    status: z.string(),
+    email_address: z.string(),
+    pricePaid: z.string(),
+  }).optional(),
+})

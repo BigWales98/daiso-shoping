@@ -10,6 +10,7 @@ import {
     uuid,
     json,
   } from 'drizzle-orm/pg-core'
+  import { relations } from 'drizzle-orm'
 
   import type { AdapterAccount } from 'next-auth/adapters'
   import { CartItem, ShippingAddress, PaymentResult } from '@/types'
@@ -137,3 +138,36 @@ export const orders = pgTable('order', {
   deliveredAt: timestamp('deliveredAt'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 })
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  orderItems: many(orderItems),
+  user: one(users, { fields: [orders.userId], references: [users.id] }),
+}))
+
+export const orderItems = pgTable(
+  'orderItems',
+  {
+    orderId: uuid('orderId')
+      .notNull()
+      .references(() => orders.id, { onDelete: 'cascade' }),
+    productId: uuid('productId')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    qty: integer('qty').notNull(),
+    price: numeric('price', { precision: 12, scale: 2 }).notNull(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    image: text('image').notNull(),
+  },
+  (orderItem) => ({
+    compoundKey: primaryKey({
+      columns: [orderItem.orderId, orderItem.productId],
+    }),
+  })
+)
+
+export const orderItemsRelations = relations(orderItems, ({ one }: { one: any }) => ({
+  order: one(orders, {
+    fields: [orderItems.orderId],
+    references: [orders.id],
+  }),
+}))
