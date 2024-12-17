@@ -12,3 +12,31 @@ export type PaymentResult = {
   status: string
   email_address: string
 }
+
+export interface Order {
+  id: string
+  userId: string
+  shippingAddress: ShippingAddress
+  paymentMethod: string
+  paymentResult?: PaymentResult | null
+  itemsPrice: string
+  shippingPrice: string
+  taxPrice: string
+  totalPrice: string
+  isPaid: boolean
+  paidAt?: Date | null
+  isDelivered: boolean
+  deliveredAt?: Date | null
+  createdAt: Date
+  orderItems: OrderItem[]
+}
+
+export interface OrderItem {
+  orderId: string
+  productId: string
+  name: string
+  slug: string
+  image: string
+  price: string
+  qty: number
+}

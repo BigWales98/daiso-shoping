@@ -1,3 +1,5 @@
+'use server'
+
 import { auth } from "@/auth"
 import db from '@/db/drizzle'
 import { orders, orderItems, carts } from '@/db/schema'
@@ -14,8 +16,19 @@ export const createOrder = async () => {
     try {
       const session = await auth()
       if (!session) throw new Error('User is not authenticated')
-      const cart = await getMyCart()
+      
+      let cart
+      try {
+        cart = await getMyCart()
+      } catch (error) {
+        console.error('Failed to get cart:', error)
+        throw new Error('Failed to get cart')
+      }
+      
       const user = await getUserById(session?.user.id!)
+      
+      console.log('Creating order:', { cart, user })
+      
       if (!cart || cart.items.length === 0) redirect('/cart')
       if (!user.address) redirect('/shipping-address')
       if (!user.paymentMethod) redirect('/payment-method')
@@ -53,9 +66,21 @@ export const createOrder = async () => {
       if (!insertedOrderId) throw new Error('Order not created')
       redirect(`/order/${insertedOrderId}`)
     } catch (error) {
+      console.error('Create order error:', error)
       if (isRedirectError(error)) {
         throw error
       }
       return { success: false, message: formatError(error as CustomError) }
     }
+  }
+
+// GET
+export async function getOrderById(orderId: string) {
+    return await db.query.orders.findFirst({
+      where: eq(orders.id, orderId),
+      with: {
+        orderItems: true,
+        user: { columns: { name: true, email: true } },
+      },
+    })
   }
