@@ -12,38 +12,9 @@ import {
   } from 'drizzle-orm/pg-core'
 
   import type { AdapterAccount } from 'next-auth/adapters'
-  import { CartItem } from '@/types'
-  
-  // PRODUCTS
-  export const products = pgTable(
-    'product',
-    {
-      id: uuid('id').defaultRandom().primaryKey().notNull(),
-      name: text('name').notNull(),
-      slug: text('slug').notNull(),
-      category: text('category').notNull(),
-      images: text('images').array().notNull(),
-      brand: text('brand').notNull(),
-      description: text('description').notNull(),
-      stock: integer('stock').notNull(),
-      price: numeric('price', { precision: 12, scale: 2 })
-        .notNull()
-        .default('0'),
-      rating: numeric('rating', { precision: 3, scale: 2 })
-        .notNull()
-        .default('0'),
-      numReviews: integer('numReviews').notNull().default(0),
-      isFeatured: boolean('isFeatured').default(false).notNull(),
-      banner: text('banner'),
-      createdAt: timestamp('createdAt').defaultNow().notNull(),
-    },
-    (table) => {
-      return {
-        productSlugIdx: uniqueIndex('product_slug_idx').on(table.slug),
-      }
-    }
-  )
+  import { CartItem, ShippingAddress } from '@/types'
 
+  // 1. 기본 사용자 테이블 먼저 정의
   export const users = pgTable('user', {
     id: uuid('id').defaultRandom().primaryKey().notNull(),
     name: text('name').default('NO_NAME').notNull(),
@@ -52,8 +23,10 @@ import {
     email: text('email').notNull(),
     emailVerified: timestamp('emailVerified', { mode: 'date' }),
     image: text('image'),
+    address: json('address').$type<ShippingAddress>(),
   })
-  
+
+  // 2. 인증 관련 테이블들
   export const accounts = pgTable(
     'account',
     {
@@ -77,7 +50,7 @@ import {
       }),
     })
   )
-  
+
   export const sessions = pgTable('session', {
     sessionToken: text('sessionToken').primaryKey(),
     userId: uuid('userId')
@@ -85,7 +58,7 @@ import {
       .references(() => users.id, { onDelete: 'cascade' }),
     expires: timestamp('expires', { mode: 'date' }).notNull(),
   })
-  
+
   export const verificationTokens = pgTable(
     'verificationToken',
     {
@@ -98,6 +71,35 @@ import {
     })
   )
 
+  // 3. 제품 테이블
+  export const products = pgTable(
+    'product',
+    {
+      id: uuid('id').defaultRandom().primaryKey().notNull(),
+      name: text('name').notNull(),
+      slug: text('slug').notNull(),
+      category: text('category').notNull(),
+      images: text('images').array().notNull(),
+      brand: text('brand').notNull(),
+      description: text('description').notNull(),
+      stock: integer('stock').notNull(),
+      price: numeric('price', { precision: 12, scale: 2 })
+        .notNull()
+        .default('0'),
+      rating: numeric('rating', { precision: 3, scale: 2 })
+        .notNull()
+        .default('0'),
+      numReviews: integer('numReviews').notNull().default(0),
+      isFeatured: boolean('isFeatured').default(false).notNull(),
+      banner: text('banner'),
+      createdAt: timestamp('createdAt').defaultNow().notNull(),
+    },
+    (table) => ({
+      productSlugIdx: uniqueIndex('product_slug_idx').on(table.slug),
+    })
+  )
+
+  // 4. 장바구니 테이블
   export const carts = pgTable('cart', {
     id: uuid('id').notNull().defaultRandom().primaryKey(),
     userId: uuid('userId').references(() => users.id, {
