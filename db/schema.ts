@@ -12,7 +12,7 @@ import {
   } from 'drizzle-orm/pg-core'
 
   import type { AdapterAccount } from 'next-auth/adapters'
-  import { CartItem, ShippingAddress } from '@/types'
+  import { CartItem, ShippingAddress, PaymentResult } from '@/types'
 
   // 1. 기본 사용자 테이블 먼저 정의
   export const users = pgTable('user', {
@@ -24,6 +24,7 @@ import {
     emailVerified: timestamp('emailVerified', { mode: 'date' }),
     image: text('image'),
     address: json('address').$type<ShippingAddress>(),
+    paymentMethod: text('paymentMethod'),
   })
 
   // 2. 인증 관련 테이블들
@@ -113,3 +114,26 @@ import {
     totalPrice: numeric('totalPrice', { precision: 12, scale: 2 }).notNull(),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
   })
+
+  // ORDERS
+export const orders = pgTable('order', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  shippingAddress: json('shippingAddress').$type<ShippingAddress>().notNull(),
+  paymentMethod: text('paymentMethod').notNull(),
+  paymentResult: json('paymentResult').$type<PaymentResult>(),
+  itemsPrice: numeric('itemsPrice', { precision: 12, scale: 2 }).notNull(),
+  shippingPrice: numeric('shippingPrice', {
+    precision: 12,
+    scale: 2,
+  }).notNull(),
+  taxPrice: numeric('taxPrice', { precision: 12, scale: 2 }).notNull(),
+  totalPrice: numeric('totalPrice', { precision: 12, scale: 2 }).notNull(),
+  isPaid: boolean('isPaid').notNull().default(false),
+  paidAt: timestamp('paidAt'),
+  isDelivered: boolean('isDelivered').notNull().default(false),
+  deliveredAt: timestamp('deliveredAt'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+})
