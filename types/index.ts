@@ -11,6 +11,7 @@ export type PaymentResult = {
   id: string
   status: string
   email_address: string
+  pricePaid: string
 }
 
 export interface Order {

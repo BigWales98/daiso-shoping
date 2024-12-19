@@ -24,7 +24,10 @@ export const metadata = {
       redirect('/')
     }
   
-    return <OrderDetailsForm order={order} />
+    return <OrderDetailsForm 
+      order={order}
+      paypalClientId={process.env.PAYPAL_CLIENT_ID!}
+    />
   }
   
   export default OrderDetailsPage
