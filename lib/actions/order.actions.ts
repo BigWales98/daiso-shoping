@@ -2,8 +2,8 @@
 
 import { auth } from "@/auth"
 import db from '@/db/drizzle'
-import { orders, orderItems, carts } from '@/db/schema'
-import { eq, desc, sql } from 'drizzle-orm'
+import { orders, orderItems, carts, users, products } from '@/db/schema'
+import { eq, desc, sql, count, sum } from 'drizzle-orm'
 import { getUserById } from "./user.actions"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
@@ -195,5 +195,37 @@ export async function getMyOrders({ page, limit }: { page: number; limit: number
   return {
     data: userOrders,
     totalPages: Math.ceil(totalOrders[0].count / limit),
+  }
+}
+
+export async function getOrderSummary() {
+  const ordersCount = await db.select({ count: count() }).from(orders)
+  const productsCount = await db.select({ count: count() }).from(products)
+  const usersCount = await db.select({ count: count() }).from(users)
+  const ordersPrice = await db
+    .select({ sum: sum(orders.totalPrice) })
+    .from(orders)
+
+  const salesData = await db
+    .select({
+      months: sql<string>`to_char(${orders.createdAt},'MM/YY')`,
+      totalSales: sql<number>`sum(${orders.totalPrice})`.mapWith(Number),
+    })
+    .from(orders)
+    .groupBy(sql`1`)
+  const latestOrders = await db.query.orders.findMany({
+    orderBy: [desc(orders.createdAt)],
+    with: {
+      user: { columns: { name: true } },
+    },
+    limit: 6,
+  })
+  return {
+    ordersCount,
+    productsCount,
+    usersCount,
+    ordersPrice,
+    salesData,
+    latestOrders,
   }
 }

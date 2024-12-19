@@ -112,3 +112,7 @@ export const formatDateTime = (dateString: Date) => {
     timeOnly: formattedTime,
   }
 }
+
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat().format(value)
+}

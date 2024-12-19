@@ -9,7 +9,7 @@ import db from '@/db/drizzle'
 import { users } from '@/db/schema'
 import { formatError, CustomError } from '@/lib/utils'
 import { ShippingAddress } from '@/types'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -119,6 +119,29 @@ export async function updateUserPaymentMethod(
       .set({ paymentMethod: paymentMethod.type })
       .where(eq(users.id, currentUser.id))
     // revalidatePath('/place-order')
+    return {
+      success: true,
+      message: 'User updated successfully',
+    }
+  } catch (error) {
+    return { success: false, message: formatError(error as CustomError) }
+  }
+}
+
+export async function updateProfile(user: { name: string; email: string }) {
+  try {
+    const session = await auth()
+    const currentUser = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.id, session?.user.id!),
+    })
+    if (!currentUser) throw new Error('User not found')
+    await db
+      .update(users)
+      .set({
+        name: user.name,
+      })
+      .where(and(eq(users.id, currentUser.id)))
+
     return {
       success: true,
       message: 'User updated successfully',
